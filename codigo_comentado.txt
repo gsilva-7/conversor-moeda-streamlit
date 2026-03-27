@@ -1,0 +1,87 @@
+# 1. IMPORTAÇÃO DE BIBLIOTECAS
+import streamlit as st  # Importa o framework e o apelida de 'st' para facilitar o uso
+import requests         # Biblioteca para fazer requisições HTTP (conversar com a internet)
+
+# 2. CONFIGURAÇÃO INICIAL DA PÁGINA
+# Este deve ser SEMPRE o primeiro comando do script.
+# Define o título na aba do navegador e o ícone (emoji).
+st.set_page_config(page_title="MoneyTech Converter", page_icon="💰")
+
+# 3. DEFINIÇÃO DE FUNÇÕES (Lógica de Dados)
+# Criamos uma função para organizar a busca na API.
+def buscar_cotacoes():
+    # URL da API pública que fornece dados de economia
+    url = "https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL"
+    
+    # O comando .get() "visita" a URL e traz a resposta
+    requisicao = requests.get(url)
+    
+    # .json() transforma a resposta bruta em um dicionário Python (chave: valor)
+    return requisicao.json()
+
+# 4. TÍTULO E INTERFACE DE TEXTO
+# Renderiza um H1 (título principal) no HTML da página.
+st.title("💰 Conversor de Moedas em Tempo Real")
+
+# Renderiza um parágrafo de texto simples.
+st.write("Valores atualizados via API externa.")
+
+# 5. BLOCO DE TRATAMENTO DE ERROS (Segurança)
+# O 'try' tenta executar o código; se a internet falhar, o 'except' captura o erro.
+try:
+    # Chama a função e armazena o dicionário na variável 'dados'
+    dados = buscar_cotacoes()
+    
+    # Extrai os valores específicos (bid = preço de compra) e converte para número decimal (float)
+    usd = float(dados['USDBRL']['bid'])
+    eur = float(dados['EURBRL']['bid'])
+    btc = float(dados['BTCBRL']['bid'])
+
+    # 6. LAYOUT EM COLUNAS
+    # Divide o espaço central em duas partes iguais.
+    col1, col2 = st.columns(2)
+
+    # O bloco 'with' diz ao Streamlit para colocar o widget DENTRO daquela coluna.
+    with col1:
+        # Cria um campo de entrada de número. 
+        # O valor digitado pelo usuário é guardado na variável 'valor_brl'.
+        valor_brl = st.number_input("Valor em Reais (R$):", value=100.0, step=10.0)
+
+    with col2:
+        # Cria um menu de seleção. 
+        # A opção escolhida pelo usuário é guardada na variável 'moeda_destino'.
+        moeda_destino = st.selectbox(
+            "Converter para:",
+            ["Dólar (USD)", "Euro (EUR)", "Bitcoin (BTC)"]
+        )
+
+    # 7. LÓGICA DE CONVERSÃO (Python Puro)
+    # Aqui usamos estruturas de decisão para saber qual cálculo fazer.
+    if moeda_destino == "Dólar (USD)":
+        resultado = valor_brl / usd
+        simbolo = "US$"
+    elif moeda_destino == "Euro (EUR)":
+        resultado = valor_brl / eur
+        simbolo = "€"
+    else:
+        resultado = valor_brl / btc
+        simbolo = "₿"
+
+    # 8. EXIBIÇÃO DE RESULTADOS ESPECÍFICOS
+    # st.divider() desenha uma linha horizontal para organizar o visual.
+    st.divider()
+    
+    # st.metric é um componente de dashboard que mostra um rótulo e um valor em destaque.
+    # f"{resultado:.2f}" formata o número para ter apenas 2 casas decimais.
+    st.metric(label=f"Total em {moeda_destino}", value=f"{simbolo} {resultado:.2f}")
+    
+    # st.caption cria um texto pequeno (legenda) cinza abaixo do resultado.
+    st.caption(f"Cotação atual usada: 1.00 unidade da moeda = R$ {usd if 'Dólar' in moeda_destino else (eur if 'Euro' in moeda_destino else btc):.2f}")
+
+except Exception as e:
+    # Se algo der errado no 'try', mostra um alerta vermelho com ícone de erro.
+    st.error("Erro ao conectar com a API de moedas. Verifique sua internet.")
+
+# 9. RODAPÉ
+st.divider()
+st.caption("Dados fornecidos por AwesomeAPI | Projeto SENAI 2026")
